@@ -1,0 +1,26 @@
+<?php
+$id = (int)$u['id'];
+$assigned = row("SELECT m.*, z.name zone, d.households FROM relief_missions m LEFT JOIN zones z ON z.id=m.zone_id LEFT JOIN demands d ON d.id=m.demand_id WHERE m.ngo_id=? AND m.status='assigned' ORDER BY m.created_at DESC LIMIT 1", [$id]);
+$active = (int)val("SELECT COUNT(*) FROM relief_missions WHERE ngo_id=? AND status IN ('assigned','accepted','in_transit','arrived')", [$id]);
+$inprog = (int)val("SELECT COUNT(*) FROM relief_missions WHERE ngo_id=? AND status IN ('in_transit','arrived')", [$id]);
+$done = (int)val("SELECT COUNT(*) FROM relief_missions WHERE ngo_id=? AND status='completed'", [$id]);
+$fam = (int)val("SELECT COALESCE(SUM(dl.recipients),0) FROM deliveries dl JOIN relief_missions m ON m.id=dl.mission_id WHERE dl.status='verified' AND m.ngo_id=?", [$id]);
+$cur = row("SELECT m.*, z.name zone, v.plate, t.name driver FROM relief_missions m LEFT JOIN zones z ON z.id=m.zone_id LEFT JOIN vehicles v ON v.id=m.vehicle_id LEFT JOIN team_members t ON t.id=m.driver_id WHERE m.ngo_id=? AND m.status IN ('in_transit','arrived') ORDER BY m.dispatched_at DESC LIMIT 1", [$id]);
+$inv = rows("SELECT * FROM inventory WHERE ngo_id=? ORDER BY (quantity-reserved)/GREATEST(quantity,1) ASC, item LIMIT 5", [$id]);
+$days = []; for ($i = 6; $i >= 0; $i--) $days[date('Y-m-d', strtotime("-$i day"))] = [0, 0];
+foreach (rows("SELECT DATE(dispatched_at) dt, SUM(COALESCE(dispatched_qty,target_qty)) c FROM relief_missions WHERE ngo_id=? AND dispatched_at >= CURDATE() - INTERVAL 6 DAY GROUP BY dt", [$id]) as $r) if (isset($days[$r['dt']])) $days[$r['dt']][0] = (int)$r['c'];
+foreach (rows("SELECT DATE(dl.reviewed_at) dt, SUM(dl.quantity) c FROM deliveries dl JOIN relief_missions m ON m.id=dl.mission_id WHERE m.ngo_id=? AND dl.status='verified' AND dl.reviewed_at >= CURDATE() - INTERVAL 6 DAY GROUP BY dt", [$id]) as $r) if (isset($days[$r['dt']])) $days[$r['dt']][1] = (int)$r['c'];
+dash_head('Dashboard', 'index', $u['organization']);
+if ($assigned): ?><div class="alert blue"><span><b>New Mission Assignment: <?= e($assigned['code']) ?></b><span class="sub"><?= e($assigned['zone']) ?>: <?= number_format($assigned['target_qty']) ?> <?= e($assigned['unit']) ?> requested<?= $assigned['households'] ? ', ' . (int)$assigned['households'] . ' households' : '' ?>.</span></span><a href="<?= url('dashboard/missions.php') ?>" style="font-weight:700">Review →</a></div><?php endif; ?>
+<div class="kpis"><?= kpi('blue', 'Assigned Missions', $active, 'Total active', 'zap', 'b') . kpi('amber', 'In Progress', $inprog, 'Currently deploying', 'clock', 'a') . kpi('green', 'Completed', $done, 'All time', 'check', 'g') . kpi('blue', 'Families Served', $fam, 'Total beneficiaries', 'home', 'b') ?></div>
+<div class="cols c21">
+  <section class="panel"><header><h2>Active Mission</h2><?= $cur ? badge($cur['status']) : '' ?></header>
+  <?php if ($cur): ?><div class="kv"><div><span>Mission ID</span><b><?= e($cur['code']) ?></b></div><div><span>Zone</span><b><?= e($cur['zone']) ?></b></div><div><span>Cargo</span><b><?= e($cur['cargo'] ?: number_format($cur['target_qty']) . ' ' . $cur['unit']) ?></b></div><div><span>Vehicle</span><b><?= e($cur['plate'] ?: '—') ?></b></div><div><span>Driver</span><b><?= e($cur['driver'] ?: '—') ?></b></div><div><span>ETA</span><b><?= e($cur['eta'] ? date('H:i', strtotime($cur['eta'])) : '—') ?></b></div></div>
+    <div style="padding:0 1.3rem"><div class="list-row" style="padding:0 0 .4rem"><span>Mission progress</span><b style="color:var(--blue)"><?= (int)$cur['progress'] ?>%</b></div><div class="bar" style="height:10px"><i style="width:<?= (int)$cur['progress'] ?>%"></i></div></div>
+    <div class="pad" style="display:grid;grid-template-columns:1fr 1fr;gap:.7rem"><a class="btn btn-outline" href="<?= url('dashboard/tracking.php?id=' . (int)$cur['id']) ?>" style="background:#EEF3FF;color:var(--blue-d)">Live Track</a><a class="btn btn-green" href="<?= url('dashboard/confirm.php') ?>">Confirm Delivery</a></div>
+  <?php else: ?><div class="empty">No mission in transit. <a href="<?= url('dashboard/available.php') ?>">Find available demands</a> or <a href="<?= url('dashboard/dispatch.php') ?>">dispatch an accepted mission</a>.</div><?php endif; ?></section>
+  <section class="panel"><header><h2>Inventory Status</h2><a href="<?= url('dashboard/inventory.php') ?>" style="font-size:13px">Manage →</a></header>
+    <div class="bars"><?php foreach ($inv as $i): $av = $i['quantity'] - $i['reserved']; $p = pct($av, $i['quantity']); ?><div class="r"><div><span><?= e($i['item']) ?></span><b><?= number_format($av) ?>/<?= number_format($i['quantity']) ?></b></div><div class="bar"><i class="<?= $av <= $i['low_threshold'] ? 'r' : 'g' ?>" style="width:<?= $p ?>%"></i></div></div><?php endforeach; if (!$inv) echo '<div class="empty">No stock published yet.</div>'; ?></div></section>
+</div>
+<section class="panel"><header><h2>Relief Output · This Week</h2></header><div class="chart-wrap chart" data-chart='<?= e(json_encode(['type' => 'bar', 'labels' => array_map(fn($d) => date('D', strtotime($d)), array_keys($days)), 'series' => [['name' => 'Units dispatched', 'values' => array_column($days, 0), 'color' => '#2F5BE0'], ['name' => 'Units delivered (verified)', 'values' => array_column($days, 1), 'color' => '#14A34A']]])) ?>'></div></section>
+<?php dash_foot();
