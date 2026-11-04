@@ -1,7 +1,6 @@
 # ReliefLink: Bangladesh Disaster Coordination Platform
 
-Full-stack desktop web app: **HTML, CSS, JavaScript, PHP 8 (PDO) and MySQL/MariaDB**.
-Built from the ReliefLink SRS and Figma screens: five roles, ten core features, role-specific dashboards.
+
 
 ## Quick start (XAMPP / WAMP / Laragon)
 1. Copy this folder to `htdocs/relieflink`.
@@ -48,29 +47,3 @@ Everyone also has Notifications, My Profile, Settings and Help & Emergency Info.
 ## Offline-first
 Coordinators can submit demands, SOS alerts and delivery confirmations with no signal. They are stored in the browser (localStorage), shown under **Offline & Sync**, and sent automatically when the connection returns (or via *Sync now*). Each record has a client ID so a retry never creates duplicates (`api/sync.php`). Photo evidence needs a connection.
 
-## Structure
-```
-config/config.php        DB credentials, donation account details
-includes/bootstrap.php   session, PDO, CSRF, auth, notifications, helpers
-includes/domain.php      zone locking, matchmaking, mission lifecycle, evidence upload, verification
-includes/layout.php      public + dashboard shell, role navigation, icons
-includes/overview/*.php  the five role dashboards
-database/schema.sql      tables + seed data
-api/                     stats.php (live counters), sync.php (offline queue), ping.php
-dashboard/*.php          role-based pages
-uploads/evidence/        delivery photos (PHP execution disabled)
-assets/{css,js}          style.css, map.js, charts.js, main.js
-*.php (root)             public pages and auth
-```
-
-## Security built in
-Prepared statements everywhere, bcrypt passwords, CSRF tokens on every POST and on the sync API, output escaping, session ID regeneration at login, login/SOS/donation rate limiting, server-side role checks on every dashboard page, row-level scoping (district, zone, team), honeypot on the public SOS form, audit log of sensitive actions, image uploads validated by content (JPG/PNG/WebP only, random names, PHP execution disabled in `uploads/`), CSV export hardened against formula injection, `.htaccess` blocking `config/`, `includes/`, `database/`.
-
-## Before going live
-- Delete the **Demo logins** box in `login.php` and change/remove the seeded demo users.
-- Set `DEV_SHOW_RESET_LINK` to `false` in `config/config.php` and configure SMTP for `mail()`.
-- Put your real bKash/Nagad/bank details in `DONATION_ACCOUNTS`.
-- Replace the sample testimonials on the landing page with real, consented quotes.
-- Serve over HTTPS and use a dedicated MySQL user instead of `root`.
-- Email/SMS delivery channels in Settings are preferences only until you connect a gateway.
-- Optional: add a photo at `assets/img/relief.jpg` for the login/signup side panel.
