@@ -43,5 +43,5 @@
 Everyone also has Notifications, My Profile, Settings and Help & Emergency Info. Public (no login): landing page, how it works, active disasters map, **Emergency SOS**, **Donate**.
 
 ## Offline-first
-Coordinators can submit demands, SOS alerts and delivery confirmations with no signal. They are stored in the browser (localStorage), shown under **Offline & Sync**, and sent automatically when the connection returns (or via *Sync now*). Each record has a client ID so a retry never creates duplicates (`api/sync.php`). Photo evidence needs a connection.
+Coordinators can submit demands, SOS alerts and delivery confirmations with no signal. They are stored in the browser , shown under **Offline & Sync**, and sent automatically when the connection returns (or via *Sync now*). Each record has a client ID so a retry never creates duplicates (`api/sync.php`). Photo evidence needs a connection.
 
