@@ -2,7 +2,7 @@
 
 
 
-## Quick start (XAMPP / WAMP / Laragon)
+## Quick start (XAMPP)
 1. Copy this folder to `htdocs/relieflink`.
 2. Start Apache and MySQL. In phpMyAdmin choose **Import** and run `database/schema.sql`
    (creates the `relieflink` database, 64 districts and demo data; re-running it resets everything).
@@ -19,9 +19,7 @@
 | Spot Coordinator | spot@relieflink.org | Sylhet, Sadar North Zone A |
 | Audit Wing | audit@relieflink.gov.bd | |
 
-Other seeded users: `red.crescent@relieflink.org` (NGO), `rafiq@relieflink.org` (coordinator, Sunamganj), `dss@relieflink.org` (NGO).
-
-## The workflow (SRS features 1 to 10)
+## The workflow 
 1. **Demand reporting.** The Spot Coordinator submits a demand for their zone (category, quantity, households, urgency, access mode, GPS). Works offline.
 2. **Smart matchmaking.** Admins press *Match* on a demand and see NGOs ranked by sufficient stock and distance from their warehouse to the zone. NGOs also see demands sorted by priority and distance, with their own stock match.
 3. **Zone locking.** An NGO accepts a demand: the zone is locked **for that item type**, stock is reserved, and no other team can take it. A database unique key makes this safe under concurrent clicks. Admins can release a lock before dispatch.
